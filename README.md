@@ -8,14 +8,14 @@ The following installation will assume that nothing has been configured with reg
 Using Django with Python3 (as per this particular repository):
 ```
 sudo apt-get update
-sudo apt-get install apache2 libapache2-mod-wsgi
+sudo apt-get install python3-pip apache2 libapache2-mod-wsgi-py3
 ```
 
 Git clone the project into a desired directory with: `https://github.com/ehng359/functional_fashion_server`. This will contain the virtual environment being used for this project as well as the files necessary for starting up the server. Change directory into the newly cloned folder and perform the command `source env/bin/activate` which will activate the virtual environment.
 
 Run the following command:
 ```
-pip3 install django django-rest-framework
+pip3 install django django-rest-framework django-debug-toolbar
 ```
 This will install the necessary Python frameworks if they do not already exist. Next we create an superuser (to manage the database/models) and collect static content into the folders.
 ```
