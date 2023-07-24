@@ -11,7 +11,7 @@ sudo apt-get update
 sudo apt-get install python3-pip apache2 libapache2-mod-wsgi-py3
 ```
 
-Git clone the project into a desired directory with: `https://github.com/ehng359/functional_fashion_server`. This will contain the virtual environment being used for this project as well as the files necessary for starting up the server. Change directory into the newly cloned folder and perform the command `source env/bin/activate` which will activate the virtual environment.
+Git clone the project into a desired directory with: `git clone https://github.com/ehng359/functional_fashion_server`. This will contain the virtual environment being used for this project as well as the files necessary for starting up the server. Change directory into the newly cloned folder and perform the command `source env/bin/activate` which will activate the virtual environment.
 
 Run the following command:
 ```
@@ -24,16 +24,16 @@ python3 manage.py createsuperuser
 python3 manage.py collectstatic
 ```
 
-At this point, if you run `./manage.py runserver 0.0.0.0:8000` you should be able to visit the server domain name or IP address followed by :8000. This will display a JSONObject of heartBeat data.
+At this point, if you run `python3 manage.py runserver 0.0.0.0:8000` you should be able to visit the server domain name or IP address followed by :8000. This will display a JSONObject of heartBeat data. If it states there exists a disallowed host, edit the file settings.py contained in the hb_read_server2 folder to add a string of the IP or hostname this server is attempted to be run on.
 
 * `http://domain_or_IP:8000/` - base endpoint for GET/PUT/POST HTTP request data
 * `http://domain_or_IP:8000/admin` - admin panel
 
 ### Configure Apache
-First we edit the default vritual host file in order to use Apache to translate client connections into WSGI format Django expects: 
+First, edit the default virtual host file in order to use Apache to translate client connections into WSGI format Django expects: 
 `sudo txt_editor /etc/apache2/sites-available/000-default.conf`
 
-Keeping the existing content within the file, we add:
+Keeping the existing content within the file, add:
 ```
 <VirtualHost *:80>
     . . .
@@ -59,10 +59,9 @@ Keeping the existing content within the file, we add:
 With the SQLite database, we require the established Apache process access to the file itself:
 ```
 chmod 664 /path/to/repo/db.sqlite3
-chown :www-data /path/to/repo/db.sqlite3
+sudo chown :www-data /path/to/repo/db.sqlite3
 sudo chown :www-data /path/to/repo
 ```
 Once these permissions are granted, we can restart the service with `sudo service apache2 restart`
-
 <br>
-These processes enable us to setup the DJango project in its own virtual environment and configure Apache with mod_wsgi to handle client requests to directly interface with Django.
+These processes enable us to setup the DJango project in its own virtual environment and configure Apache with mod_wsgi to handle client requests to directly interface with Django. If not launching on a public server accessible via some domain, ensure that all devices in which want to make the request belnog to the same network as the server.
