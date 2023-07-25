@@ -62,6 +62,7 @@ chmod 664 /path/to/repo/db.sqlite3
 sudo chown :www-data /path/to/repo/db.sqlite3
 sudo chown :www-data /path/to/repo
 ```
-Once these permissions are granted, we can restart the service with `sudo service apache2 restart`
+Once these permissions are granted, we can restart the service with `sudo service apache2 restart`.
 <br>
+
 These processes enable us to setup the DJango project in its own virtual environment and configure Apache with mod_wsgi to handle client requests to directly interface with Django. If not launching on a public server accessible via some domain, ensure that all devices in which want to make the request belnog to the same network as the server.
