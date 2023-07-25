@@ -3,4 +3,4 @@ from .models import Biometrics
 class BiometricSerializer(serializers.ModelSerializer):
     class Meta:
         model = Biometrics
-        fields = ['heartBeat']
+        fields = ['date', 'heartBeat']
