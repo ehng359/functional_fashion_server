@@ -6,4 +6,7 @@ from django.db import models
 # Create your models here.
 class Biometrics(models.Model):
     date = models.CharField(max_length=19, default="")
-    heartBeat = models.IntegerField()
+    heartBeat = models.IntegerField(default=None, null=True)
+    respiratoryRate = models.IntegerField(default=None, null=True)
+    heartBeatVar = models.IntegerField(default=None, null=True)
+    restingHeartRate = models.IntegerField(default=None, null=True)
