@@ -22,7 +22,7 @@ fi
 python3 manage.py dumpdata --indent 2 collect > $NEW_DATA_FILE_NAME 2> /dev/null
 
 if [ $? == 0 ]; then
-    echo "=== Successfully converted database file at:\n$NEW_DATA_FILE_NAME."
+    echo "=== Successfully converted database file at:\n$NEW_DATA_FILE_NAME"
 else
     echo "*** Errors occurred. Ensure you are in the correct Python3 environment."
     exit 1
