@@ -25,5 +25,8 @@ class Biometrics(models.Model):
     valence = models.FloatField(default=None, null=True)
     arousal = models.FloatField(default=None, null=True)
 
+    # Context
+    activity = models.CharField(max_length=20, default="None")
+
     def __str__(self):
         return self.watchUser.id + " " + self.date
