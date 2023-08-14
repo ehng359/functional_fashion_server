@@ -18,6 +18,9 @@ from rest_framework import status
 def get_hb_data (request):
     # Retrieves all of the values from every recorded instance provided (all sources)
     if request.method == 'GET':
+        # ? starts the query
+        # & separates each parameter
+        # = assigns right-hand value to left-hand value
         hb_data = Biometrics.objects.all()
         serializer = BiometricSerializer(hb_data, many=True)
         return JsonResponse(serializer.data, safe=False)
