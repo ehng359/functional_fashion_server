@@ -14,6 +14,7 @@ RUN python3 manage.py createsuperuser
 RUN python3 manage.py collectstatic
 RUN python3 manage.py makemigrations
 RUN python3 manage.py migrate
+RUN python3 manage.py migrate --run-syncdb
 
 VOLUME /app
 
