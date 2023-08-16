@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 from django.shortcuts import render
 
 # Create your views here.
-import subprocess, json
+import subprocess, json, datetime, re 
 from django.http import JsonResponse
 from django.core import serializers
 from rest_framework.decorators import api_view
@@ -21,10 +21,73 @@ def get_hb_data (request):
         # ? starts the query
         # & separates each parameter
         # = assigns right-hand value to left-hand value
-        hb_data = Biometrics.objects.all()
-        serializer = BiometricSerializer(hb_data, many=True)
-        return JsonResponse(serializer.data, safe=False)
-    
+        '''
+        required:
+            watchID
+        filters:
+            past -> "x [weeks/days/hours/minutes]" (old/live data)
+            num_instances -> "x" (old/live data)
+            session_id -> "file_name" - yet to implement
+        '''
+        params = dict(request.GET)
+        print(params)
+        if len(params) == 0:
+            hb_data = Biometrics.objects.all()
+            serializer = BiometricSerializer(hb_data, many=True)
+            return JsonResponse(serializer.data, safe=False)
+        
+        # There are provided parameters in the GET request which provide filters we may search for.
+        watch_identifier = params["id"] if "id" in params else None
+        if len(watch_identifier) != 1:
+            return Response("No WatchID provided.", status=400)
+        
+        # Date will be passed in by { "past": "(numeric) (metric)" } 
+        past = params["past"] if "id" in params else None
+        desired_time = None
+        pastXFilterEnabled = False
+        if past:
+            pastXFilterEnabled = True
+            current_time = datetime.datetime.now()
+            past = past[0].split("_")
+            past_value = float(past[0])
+            past_metric = past[1]
+            match(past_metric):
+                case "seconds" | "second":
+                    desired_time = current_time - datetime.timedelta(seconds=past_value)
+                case "minutes" | "minute":
+                    desired_time = current_time - datetime.timedelta(minutes=past_value)
+                case "hours" | "hour":
+                    desired_time = current_time - datetime.timedelta(hours=past_value)
+                case "days" | "day":
+                    desired_time = current_time - datetime.timedelta(days=past_value)
+                case _:
+                    print("defaulted")
+        
+        num_instances = int(params["num_instances"][0]) if "num_instances" in params else None
+
+        user = Users.objects.get(id=watch_identifier[0])
+        data = user.biometricData.all()
+        ret = []
+        if pastXFilterEnabled:
+            for datum in reversed(data):
+                if num_instances == 0:
+                    break
+
+                # Parsing biometric values to evaluate if in range
+                datum_date = re.split('-| |:', datum.date)
+                datum_date = [int(value) if value else None for value in datum_date]
+                datum_date.pop()
+                datum_date_object = datetime.datetime(*datum_date)
+                
+                if datum_date_object > desired_time:
+                    ret.append(datum)
+                if num_instances:
+                    num_instances -= 1
+        serialized_biometrics = serializers.serialize(format="json", queryset=list(reversed(ret)))
+        data = json.loads(serialized_biometrics)
+        data_raw = [biometric['fields'] for biometric in data]
+        return JsonResponse(data_raw, safe=False)
+
     # Updates the list of instances with a new value
     elif request.method == 'PUT':
         user = Users.objects.get(id=request.data["id"])
