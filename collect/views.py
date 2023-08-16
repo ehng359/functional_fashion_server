@@ -30,7 +30,6 @@ def get_hb_data (request):
             session_id -> "file_name" - yet to implement
         '''
         params = dict(request.GET)
-        print(params)
         if len(params) == 0:
             hb_data = Biometrics.objects.all()
             serializer = BiometricSerializer(hb_data, many=True)

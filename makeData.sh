@@ -2,7 +2,11 @@
 DIRECTORY=$(pwd)
 DATABASE_FILE="db.sqlite3"
 DATA_FOLDER_NAME="data"
-DATA_FILE_NAME=`shasum "$DIRECTORY/$DATABASE_FILE" | awk '{ print $1 }'`
+if ! command -v sha1sum &> /dev/null; then
+    DATA_FILE_NAME=`shasum "$DIRECTORY/$DATABASE_FILE" | awk '{ print $1 }'`
+else
+    DATA_FILE_NAME=`sha1sum "$DIRECTORY/$DATABASE_FILE" | awk '{ print $1 }'`
+fi
 NEW_DATA_FILE_NAME="$DIRECTORY/$DATA_FOLDER_NAME/$DATA_FILE_NAME.json"
 
 if test -f "$DATABASE_FILE"; then
