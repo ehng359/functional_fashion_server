@@ -66,3 +66,32 @@ Once these permissions are granted, we can restart the service with `sudo servic
 <br>
 
 These processes enable us to setup the DJango project in its own virtual environment and configure Apache with mod_wsgi to handle client requests to directly interface with Django. If not launching on a public server accessible via some domain, ensure that all devices in which want to make the request belnog to the same network as the server.
+
+## HTTP Requests and Usage
+### GET
+Available parameters for the HTTP request while retrieving live data from the Apple Watch:
+- id : (alpha_numeric_value)-... Watch identifier unique to each Apple Watch.
+- past : (numeric_value)_(metric) which indicates the range from which you want to retrieve data from current time. (i.e. 5_days, 4_hours, 3_minutes, 2_seconds)
+- num_instances : (numeric_value) which indicates the number of instances that you want to query for at a given time.
+
+Providing none of these values will simply return all the values accordingly.
+
+### POST
+Adds biometric data in the format of:
+```
+[{
+    "watchUser": "B6B2A8D5-CA77-4D2D-AFE3-F1074690BA3F", 
+    "date": "2023-08-16 13:27:17 +0000", 
+    "heartBeat": 76, 
+    "respiratoryRate": null, 
+    "heartBeatVar": null, 
+    "restingHeartRate": null, 
+    "valence": 0.04870128631591797, 
+    "arousal": 0.0, 
+    "activity": "Work/Study"
+}, ...]
+```
+
+### PUT
+Takes all values from a given session and consolidates the values to a .json file compiled together underneath the data folder constructed with the makeData.sh shell script.
+
