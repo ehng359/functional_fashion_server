@@ -25,7 +25,8 @@ def get_hb_data (request):
         required:
             watchID
         filters:
-            since -> "hh:mm:ss"
+            since_date -> "yyyy-mm-dd"
+            since_time -> "hh:mm:ss"
             past -> "x [weeks/days/hours/minutes]" (old/live data)
             num_instances -> "x" (old/live data)
             session_id -> "file_name" - yet to implement
@@ -43,16 +44,23 @@ def get_hb_data (request):
         desired_time = None
         dateFilterEnabled = False
 
-        since = params["since"] if "since" in params else None
-        if since:
+        
+        since_date = params["since_date"] if "since_date" in params and "past" not in params else None
+        since_time = params["since_time"] if "since_time" in params and "past" not in params else None
+        if since_time or since_date:
             dateFilterEnabled = True
-            since = since[0].split(":")
-            (hours, minutes, seconds) = (int(since[0]), int(since[1]), int(since[2]))
             current_time = datetime.datetime.today()
-            desired_time = datetime.datetime(current_time.year, current_time.month, current_time.day, hours, minutes, seconds)
+            year, month, day, hours, minutes, seconds = current_time.year, current_time.month, current_time.day, 0, 0, 0
+            if since_date:
+                since_date = since_date[0].split("-")
+                (year, month, day) = (int(since_date[0]), int(since_date[1]), int(since_date[2]))
+            if since_time:
+                since_time = since_time[0].split(":")
+                (hours, minutes, seconds) = (int(since_time[0]), int(since_time[1]), int(since_time[2]))
+            desired_time = datetime.datetime(year, month, day, hours, minutes, seconds)
         
         # Date will be passed in by { "past": "(numeric) (metric)" } 
-        past = params["past"] if "past" in params else None
+        past = params["past"] if "past" in params and "since" not in params else None
         if past:
             dateFilterEnabled = True
             current_time = datetime.datetime.now()
