@@ -25,6 +25,7 @@ def get_hb_data (request):
         required:
             watchID
         filters:
+            since -> "hh:mm:ss"
             past -> "x [weeks/days/hours/minutes]" (old/live data)
             num_instances -> "x" (old/live data)
             session_id -> "file_name" - yet to implement
@@ -39,13 +40,21 @@ def get_hb_data (request):
         watch_identifier = params["id"] if "id" in params else None
         if len(watch_identifier) != 1:
             return Response("No WatchID provided.", status=400)
+        desired_time = None
+        dateFilterEnabled = False
+
+        since = params["since"] if "since" in params else None
+        if since:
+            dateFilterEnabled = True
+            since = since[0].split(":")
+            (hours, minutes, seconds) = (int(since[0]), int(since[1]), int(since[2]))
+            current_time = datetime.datetime.today()
+            desired_time = datetime.datetime(current_time.year, current_time.month, current_time.day, hours, minutes, seconds)
         
         # Date will be passed in by { "past": "(numeric) (metric)" } 
-        past = params["past"] if "id" in params else None
-        desired_time = None
-        pastXFilterEnabled = False
+        past = params["past"] if "past" in params else None
         if past:
-            pastXFilterEnabled = True
+            dateFilterEnabled = True
             current_time = datetime.datetime.now()
             past = past[0].split("_")
             past_value = float(past[0])
@@ -67,7 +76,7 @@ def get_hb_data (request):
         user = Users.objects.get(id=watch_identifier[0])
         data = user.biometricData.all()
         ret = []
-        if pastXFilterEnabled:
+        if dateFilterEnabled:
             for datum in reversed(data):
                 if num_instances == 0:
                     break
@@ -80,6 +89,13 @@ def get_hb_data (request):
                 
                 if datum_date_object > desired_time:
                     ret.append(datum)
+                if num_instances:
+                    num_instances -= 1
+        elif num_instances:
+            for datum in reversed(data):
+                if num_instances == 0:
+                    break
+                ret.append(datum)
                 if num_instances:
                     num_instances -= 1
         serialized_biometrics = serializers.serialize(format="json", queryset=list(reversed(ret)))

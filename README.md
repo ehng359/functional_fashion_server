@@ -71,6 +71,7 @@ These processes enable us to setup the DJango project in its own virtual environ
 ### GET
 Available parameters for the HTTP request while retrieving live data from the Apple Watch:
 - id : (alpha_numeric_value)-... Watch identifier unique to each Apple Watch.
+- since : (hh:mm:ss) which evaluates all the information that has occurred since the provided time at current day.
 - past : (numeric_value)_(metric) which indicates the range from which you want to retrieve data from current time. (i.e. 5_days, 4_hours, 3_minutes, 2_seconds)
 - num_instances : (numeric_value) which indicates the number of instances that you want to query for at a given time.
 
