@@ -60,7 +60,7 @@ def get_hb_data (request):
             desired_time = datetime.datetime(year, month, day, hours, minutes, seconds)
         
         # Date will be passed in by { "past": "(numeric) (metric)" } 
-        past = params["past"] if "past" in params and ("since_date" not in params or "since_time" not in params) else None
+        past = params["past"] if "past" in params and "since_date" not in params and "since_time" not in params else None
         if past:
             dateFilterEnabled = True
             current_time = datetime.datetime.now()
