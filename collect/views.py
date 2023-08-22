@@ -114,6 +114,7 @@ def get_hb_data (request):
     # Updates the list of instances with a new value
     elif request.method == 'PUT':
         user = Users.objects.get(id=request.data["id"])
+        email = request.data["email"]
     
         serialized_biometrics = serializers.serialize(format="json", queryset=user.biometricData.all())
         user.biometricData.all().delete()
@@ -127,8 +128,11 @@ def get_hb_data (request):
         message = process.communicate()[0].decode()
 
         file_name = message.split("\n")[-2]
-        file = open(file_name, "w")
+        file = open("./data/" + file_name, "w")
         file.write(data)
+
+        if email != "":
+            subprocess.Popen(['python3', 'emailUserData.py', '-n', file_name, '-e', email], stdout=subprocess.PIPE)
 
         if process.returncode == 0:
             return Response({"local_save": "successful", "type" : "JSON", "JSON_Content" : data_raw}, status=200)

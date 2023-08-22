@@ -22,7 +22,7 @@ else
     echo "=== Directory 'data' exists."
 fi
 
-echo "$NEW_DATA_FILE_NAME"
+echo "$DATA_FILE_NAME.json"
 
 exit 0
 
