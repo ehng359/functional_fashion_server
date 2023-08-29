@@ -31,77 +31,46 @@ def process_ecg_data (request):
 
         interpolate, top_time, top_env_voltage = generateSecant(tv_input)
         _, bottom_time, bottom_env_voltage = generateSecant(tv_input, position=-1)
-        
+        # print("Length of top times: ", len(top_time))
+        # print("Length of bottom times: ", len(bottom_time))
         intersection = set(top_time).intersection(set(bottom_time))
+        print(intersection, len(intersection))
         bottom_env_unique = np.array([t for t in bottom_time if t not in intersection])
         top_env_unique = np.array([t for t in top_time if t not in intersection])
         top_inter_voltage = np.array(interpolate(bottom_env_unique, top_time, top_env_voltage))
         bottom_inter_voltage = np.array(interpolate(top_env_unique, bottom_time, bottom_env_voltage))
 
-        print(top_inter_voltage)
-        print("--------------")
-        print(bottom_inter_voltage)
+        # print(top_inter_voltage)
+        # print("--------------")
+        # print(bottom_inter_voltage)
+        # print("length of unique times", top_env_unique, len(top_env_unique), bottom_env_unique, len(bottom_env_unique)) 
 
         return JsonResponse(data=[], status=status.HTTP_200_OK, safe=False)
     
 def generateSecant(ecg : np.ndarray, position: int = 1) -> [(float, float)]:
     data_length = len(ecg)
-    new_time = [ecg[0][0]]
-    new_voltage = [ecg[0][1]]
+    times = ecg[:,0]
+    voltages = ecg[:,1]
+
+    new_time = [times[0]]
+    new_voltage = [voltages[1]]
 
     i = 1
     while i < data_length:
         slope_max = -np.Infinity
         i_optimal = None
-        window = ecg[i-1][0] + 0.4
+        window = times[i-1] + 0.4
         j = i + 1
-        while j  <data_length and ecg[j][0] < window:
-            print(ecg[j][1], ecg[i][1], ecg[j][0], ecg[i][0])
-            slope = ((ecg[j][1] - ecg[i][1]) / (ecg[j][0] - ecg[i][0])) * position
+        while j < data_length and ecg[j][0] < window:
+            slope = ((voltages[j] - voltages[i]) / (times[j] - times[i])) * position if times[j] != times[i] else -np.Infinity
             if slope >= slope_max:
                 slope_max = slope
                 i_optimal = j
             j += 1
         if i_optimal != None:
-            new_time.append(ecg[i_optimal][0])
-            new_voltage.append(ecg[i_optimal][1])
+            new_time.append(times[i_optimal])
+            new_voltage.append(voltages[i_optimal])
             i = i_optimal
         else:
             i = j
-
-        return (np.interp, np.array(new_time), np.array(new_voltage))
-    
-#         while i < dataLength {
-#             var slopeMax : Double = -Double.infinity
-#             var iOptimal : Int? = nil
-            
-#             let window = voltageReadings[i - 1].1 + 0.4
-#             var j : Int = i + 1
-#             while j < dataLength && voltageReadings[j].1 < window {
-#                 let slope = ((voltageReadings[j].2 - voltageReadings[i].2) / (voltageReadings[j].1 - voltageReadings[j].1)) * position
-                
-#                 if slope >= slopeMax {
-#                     slopeMax = slope
-#                     iOptimal = j
-#                 }
-#                 j += 1
-#             }
-#             if let optimal = iOptimal {
-#                 newTime.append(voltageReadings[optimal].1)
-#                 newVoltage.append(voltageReadings[optimal].2)
-# //                newReadings.append((type, voltageReadings[optimal].1, voltageReadings[optimal].2))
-#                 i = optimal
-#             } else {
-#                 i = j
-#             }
-#         }
-        
-#         // To make sure that both top and bottom secant remains the same size to be subtracted from.
-#         let controlVector : [ Double ] = vDSP.ramp(in: 0 ... Double(newTime.count) - 1, count: 2048)
-#         print(newTime.count)
-#         print(newVoltage.count)
-# //        let resultTime : [Double] = vDSP.linearInterpolate(elementsOf: newTime, using: controlVector)
-# //        let resultVoltage : [Double] = vDSP.linearInterpolate(elementsOf: newVoltage, using: controlVector)
-
-#         return []
-#     }
+    return (np.interp, np.array(new_time), np.array(new_voltage))
