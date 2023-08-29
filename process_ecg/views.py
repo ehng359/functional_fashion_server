@@ -23,8 +23,24 @@ def process_ecg_data (request):
 
     # Appends to the existing list of instances
     elif request.method == 'POST':
-        print(request.data)
+
+        # Process into JSON format, split it into three columns, look at research algorithm
+        request.data["ecgData"]
         print("test")
+        return JsonResponse(data=[], status=status.HTTP_200_OK)
+        
+        # id!
+        # ecgData: '[{"voltage":0.08044256591796875,"type":"Raw","time":29.978515625},
+        # {"voltage":0.080256767272949225,"type":"Raw","time":29.98046875},
+        # {"voltage":0.079877677917480461,"type":"Raw","time":29.982421875},
+        # {"voltage":0.079301620483398436,"type":"Raw","time":29.984375},
+        # {"voltage":0.078527038574218749,"type":"Raw","time":29.986328125},
+        # {"voltage":0.077554138183593746,"type":"Raw","time":29.98828125},
+        # {"voltage":0.076383575439453122,"type":"Raw","time":29.990234375},
+        # {"voltage":0.075017181396484375,"type":"Raw","time":29.9921875},
+        # {"voltage":0.073457443237304687,"type":"Raw","time":29.994140625},
+        # {"voltage":0.071707244873046874,"type":"Raw","time":29.99609375},
+        # {"voltage":0.06977275085449218,"type":"Raw","time":29.998046875}]'}
     
 
 def generateSecant(voltageReadings : [(float, float)], position: int) -> [(float, float)]:
