@@ -14,7 +14,6 @@ USER 1000:1000
 WORKDIR /app
 
 # Setting Up Django Rest Framework
-RUN python3 manage.py createsuperuser
 RUN python3 manage.py collectstatic
 RUN python3 manage.py makemigrations
 RUN python3 manage.py migrate

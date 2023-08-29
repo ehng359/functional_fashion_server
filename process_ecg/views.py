@@ -11,7 +11,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 
-import numpy as np
+import numpy as np, json, ast
 
 # Create your views here.
 @api_view(['POST', 'GET'])
@@ -23,35 +23,54 @@ def process_ecg_data (request):
 
     # Appends to the existing list of instances
     elif request.method == 'POST':
+        # Setting up the envelopes encasing the ECG data.
+        ecgData = ast.literal_eval(request.data["ecgData"])
+        times = np.vstack([ float(ecg["time"]) for ecg in ecgData ])
+        voltages = np.vstack([ float(ecg["voltage"]) for ecg in ecgData ])
+        tv_input = np.hstack((times, voltages))
 
-        # Process into JSON format, split it into three columns, look at research algorithm
-        request.data["ecgData"]
-        print("test")
-        return JsonResponse(data=[], status=status.HTTP_200_OK)
+        interpolate, top_time, top_env_voltage = generateSecant(tv_input)
+        _, bottom_time, bottom_env_voltage = generateSecant(tv_input, position=-1)
         
-        # id!
-        # ecgData: '[{"voltage":0.08044256591796875,"type":"Raw","time":29.978515625},
-        # {"voltage":0.080256767272949225,"type":"Raw","time":29.98046875},
-        # {"voltage":0.079877677917480461,"type":"Raw","time":29.982421875},
-        # {"voltage":0.079301620483398436,"type":"Raw","time":29.984375},
-        # {"voltage":0.078527038574218749,"type":"Raw","time":29.986328125},
-        # {"voltage":0.077554138183593746,"type":"Raw","time":29.98828125},
-        # {"voltage":0.076383575439453122,"type":"Raw","time":29.990234375},
-        # {"voltage":0.075017181396484375,"type":"Raw","time":29.9921875},
-        # {"voltage":0.073457443237304687,"type":"Raw","time":29.994140625},
-        # {"voltage":0.071707244873046874,"type":"Raw","time":29.99609375},
-        # {"voltage":0.06977275085449218,"type":"Raw","time":29.998046875}]'}
+        intersection = set(top_time).intersection(set(bottom_time))
+        bottom_env_unique = np.array([t for t in bottom_time if t not in intersection])
+        top_env_unique = np.array([t for t in top_time if t not in intersection])
+        top_inter_voltage = np.array(interpolate(bottom_env_unique, top_time, top_env_voltage))
+        bottom_inter_voltage = np.array(interpolate(top_env_unique, bottom_time, bottom_env_voltage))
+
+        print(top_inter_voltage)
+        print("--------------")
+        print(bottom_inter_voltage)
+
+        return JsonResponse(data=[], status=status.HTTP_200_OK, safe=False)
     
+def generateSecant(ecg : np.ndarray, position: int = 1) -> [(float, float)]:
+    data_length = len(ecg)
+    new_time = [ecg[0][0]]
+    new_voltage = [ecg[0][1]]
 
-def generateSecant(voltageReadings : [(float, float)], position: int) -> [(float, float)]:
-    dataLength = len(voltageReadings)
-    type = "Top" if position == 1 else "Bottom"
-    # newTime = [voltageReadings[0][0]]
-#         var newTime : [Double] = [voltageReadings.first!.1]
-#         var newVoltage : [Double] = [voltageReadings.first!.2]
-# //        var newReadings : [(String, Double, Double)] = [(type, voltageReadings.first!.1, voltageReadings.first!.2)]
-#         var i : Int = 1
-        
+    i = 1
+    while i < data_length:
+        slope_max = -np.Infinity
+        i_optimal = None
+        window = ecg[i-1][0] + 0.4
+        j = i + 1
+        while j  <data_length and ecg[j][0] < window:
+            print(ecg[j][1], ecg[i][1], ecg[j][0], ecg[i][0])
+            slope = ((ecg[j][1] - ecg[i][1]) / (ecg[j][0] - ecg[i][0])) * position
+            if slope >= slope_max:
+                slope_max = slope
+                i_optimal = j
+            j += 1
+        if i_optimal != None:
+            new_time.append(ecg[i_optimal][0])
+            new_voltage.append(ecg[i_optimal][1])
+            i = i_optimal
+        else:
+            i = j
+
+        return (np.interp, np.array(new_time), np.array(new_voltage))
+    
 #         while i < dataLength {
 #             var slopeMax : Double = -Double.infinity
 #             var iOptimal : Int? = nil
