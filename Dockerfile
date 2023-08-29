@@ -1,6 +1,9 @@
 FROM python:3.10-alpine
 
-RUN pip3 install django django-rest-framework django-debug-toolbar
+RUN apk add --update make cmake gcc g++ gfortran
+RUN apk --no-cache add musl-dev linux-headers
+
+RUN pip3 install django django-rest-framework django-debug-toolbar cpython numpy
 
 # Copy the current directory contents into the container at /app 
 ADD . /app
@@ -19,6 +22,9 @@ RUN python3 manage.py migrate --run-syncdb
 
 RUN python3 manage.py makemigrations collect
 RUN python3 manage.py migrate collect
+
+RUN python3 manage.py makemigrations process_ecg
+RUN python3 manage.py migrate process_ecg
 
 VOLUME /app
 
