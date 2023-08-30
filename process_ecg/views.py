@@ -11,7 +11,11 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 
-import numpy as np, json, ast
+import numpy as np, neurokit2 as nk, json, ast, subprocess, os
+from scipy.signal import find_peaks
+
+SCI_PY_METHOD = 0 # ms per sample
+DB_DIFF_METHOD = 1
 
 # Create your views here.
 @api_view(['POST', 'GET'])
@@ -25,27 +29,40 @@ def process_ecg_data (request):
     elif request.method == 'POST':
         # Setting up the envelopes encasing the ECG data.
         ecgData = ast.literal_eval(request.data["ecgData"])
-        times = np.vstack([ float(ecg["time"]) for ecg in ecgData ])
-        voltages = np.vstack([ float(ecg["voltage"]) for ecg in ecgData ])
-        tv_input = np.hstack((times, voltages))
+        times = [ float(ecg["time"]) for ecg in ecgData ]
+        voltages = [ float(ecg["voltage"]) for ecg in ecgData ]
 
-        interpolate, top_time, top_env_voltage = generateSecant(tv_input)
-        _, bottom_time, bottom_env_voltage = generateSecant(tv_input, position=-1)
-        # print("Length of top times: ", len(top_time))
-        # print("Length of bottom times: ", len(bottom_time))
-        intersection = set(top_time).intersection(set(bottom_time))
-        print(intersection, len(intersection))
-        bottom_env_unique = np.array([t for t in bottom_time if t not in intersection])
-        top_env_unique = np.array([t for t in top_time if t not in intersection])
-        top_inter_voltage = np.array(interpolate(bottom_env_unique, top_time, top_env_voltage))
-        bottom_inter_voltage = np.array(interpolate(top_env_unique, bottom_time, bottom_env_voltage))
+        if "TEST" in request.data:
+            if os.path.isfile("./data/test_ecg_time.json") and os.path.isfile("./data/test_ecg_voltage.json"):
+                file_time = open("./data/test_ecg_time.json", "r")
+                times = ast.literal_eval(file_time.read())
+                file_time.close()
 
-        # print(top_inter_voltage)
-        # print("--------------")
-        # print(bottom_inter_voltage)
-        # print("length of unique times", top_env_unique, len(top_env_unique), bottom_env_unique, len(bottom_env_unique)) 
+                file_voltage = open("./data/test_ecg_voltage.json", "r")
+                voltages = ast.literal_eval(file_voltage.read())
+                file_voltage.close()
 
-        return JsonResponse(data=[], status=status.HTTP_200_OK, safe=False)
+            with open("./data/test_ecg_time.json", "w") as file_time:
+                file_time.write(json.dumps(times))
+                file_time.close()
+
+            with open("./data/test_ecg_voltage.json", "w") as file_volt:
+                file_volt.write(json.dumps(voltages))
+                file_volt.close()
+
+            # subprocess.Popen(['python3', 'emailUserData.py', '-n', "test_ecg_time.json", '-e', "3dward.ng@gmail.com"], stdout=subprocess.PIPE)
+            # subprocess.Popen(['python3', 'emailUserData.py', '-n', "test_ecg_voltage.json", '-e', "3dward.ng@gmail.com"], stdout=subprocess.PIPE)
+
+        est_t = np.linspace(0, 30, 30000)
+        est_v = np.array(np.interp(est_t, times, voltages))
+        tv_input = np.hstack((np.vstack(est_t), np.vstack(est_v)))
+        peak_time, peak_volt = find_r_peaks(tv_input)
+        
+        hrv = computeHRV(peak_time)
+        est_rr = nk.ecg_rsp(est_v, sampling_rate=1000)
+        rr = len(find_peaks(est_rr))
+        
+        return JsonResponse(data={"hrv" : hrv, "rr" : rr}, status=status.HTTP_200_OK, safe=False)
     
 def generateSecant(ecg : np.ndarray, position: int = 1) -> [(float, float)]:
     data_length = len(ecg)
@@ -74,3 +91,74 @@ def generateSecant(ecg : np.ndarray, position: int = 1) -> [(float, float)]:
         else:
             i = j
     return (np.interp, np.array(new_time), np.array(new_voltage))
+
+def find_r_peaks (env : np.ndarray, method : int = SCI_PY_METHOD) -> None:
+    if method == SCI_PY_METHOD:
+    # --------------    Method 1    ----------------
+        '''
+            scipy.find_peaks method which specializes in searching for jumps in data (enabling R-Peaks to be)
+            easily identifiable.
+        '''
+        indices, _ = find_peaks(env[:,1], distance=150, prominence=1)
+        time_vals = sorted([env[:,0][index] for index in indices])
+        volt_vals = np.interp(time_vals, env[:,0], env[:,1])
+        return time_vals, volt_vals
+
+    elif method == DB_DIFF_METHOD:
+    # ------------      Method 2        -------------
+        '''
+            Double difference method proposed in: 
+            https://www.sciencedirect.com/science/article/pii/S2212017312004227
+            (UNFINISHED)
+        '''
+        voltages = env[:,1]
+        dif1 = []
+        for i in range(0, len(voltages)-1):
+            dif1.append(voltages[i+1] - voltages[i])
+
+        dif2 = []
+        for j in range(0, len(dif1) -1):
+            dif2.append(dif1[j+1] - dif1[j])
+        
+        db_diff = np.array(dif2) ** 2
+        times = np.delete(times, [len(times) - 1, len(times) - 2])
+        
+        peak_differences = np.hstack((np.vstack(times), np.vstack(db_diff)))
+        peak_differences = peak_differences[peak_differences[:,1].argsort()[::-1]]
+
+        max = peak_differences[0][1]
+        threshold = max * 0.03
+        selected = []
+
+        # Optimize via combining different ranges together.
+        coverage = list()
+        for i in range(1, len(peak_differences)):
+            if peak_differences[i][1] < threshold:
+                break
+
+            range_exists = False
+            for ranges in coverage:
+                if ranges[0] <= peak_differences[i][0] and peak_differences[i][0] <= ranges[1]:
+                    range_exists = True
+                    break
+            if not range_exists:
+                selected.append(peak_differences[i])
+                coverage.append((peak_differences[i][0] - 0.075, peak_differences[i][0] + 0.075))
+        
+        return selected
+    return
+
+def computeHRV(r_peak_times) :
+    rr_intervals = []
+    prev = r_peak_times[0]
+    for i in range(1, len(r_peak_times)):
+        rr_intervals.append(r_peak_times[i] - prev)
+        prev = r_peak_times[i]
+
+    prev = rr_intervals[0]
+    sum_of_squared_diff = 0
+    for i in range(1, len(rr_intervals)):
+        rr_diff = rr_intervals[i] - prev
+        sum_of_squared_diff += rr_diff ** 2
+    RMSSD = np.sqrt((1 / (len(rr_intervals) - 1) * sum_of_squared_diff))
+    return RMSSD
