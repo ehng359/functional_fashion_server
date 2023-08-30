@@ -14,15 +14,12 @@ from rest_framework import status
 import numpy as np, neurokit2 as nk, json, ast, subprocess, os
 from scipy.signal import find_peaks
 
-SCI_PY_METHOD = 0 # ms per sample
+SCI_PY_METHOD = 0
 DB_DIFF_METHOD = 1
 
-# Create your views here.
 @api_view(['POST', 'GET'])
 def process_ecg_data (request):
-    # Retrieves all of the values from every recorded instance provided (all sources)
     if request.method == 'GET':
-        print("GET")
         return Response([], status=200)
 
     # Appends to the existing list of instances
@@ -60,9 +57,9 @@ def process_ecg_data (request):
         
         hrv = computeHRV(peak_time)
         est_rr = nk.ecg_rsp(est_v, sampling_rate=1000)
-        rr = len(find_peaks(est_rr))
+        rr_peaks, _ = find_peaks(est_rr)
         
-        return JsonResponse(data={"hrv" : hrv, "rr" : rr}, status=status.HTTP_200_OK, safe=False)
+        return JsonResponse(data={"hrv" : hrv, "rr" : len(rr_peaks)}, status=status.HTTP_200_OK, safe=False)
     
 def generateSecant(ecg : np.ndarray, position: int = 1) -> [(float, float)]:
     data_length = len(ecg)
@@ -155,10 +152,11 @@ def computeHRV(r_peak_times) :
         rr_intervals.append(r_peak_times[i] - prev)
         prev = r_peak_times[i]
 
+    rr_intervals = np.array(rr_intervals) * 1000
     prev = rr_intervals[0]
     sum_of_squared_diff = 0
     for i in range(1, len(rr_intervals)):
         rr_diff = rr_intervals[i] - prev
         sum_of_squared_diff += rr_diff ** 2
-    RMSSD = np.sqrt((1 / (len(rr_intervals) - 1) * sum_of_squared_diff))
+    RMSSD = np.sqrt(sum_of_squared_diff / (len(rr_intervals) - 1))
     return RMSSD
