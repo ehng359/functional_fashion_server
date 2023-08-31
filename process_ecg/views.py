@@ -59,7 +59,7 @@ def process_ecg_data (request):
         est_rr = nk.ecg_rsp(est_v, sampling_rate=1000)
         rr_peaks, _ = find_peaks(est_rr)
         
-        return JsonResponse(data={"hrv" : hrv, "rr" : len(rr_peaks)}, status=status.HTTP_200_OK, safe=False)
+        return JsonResponse(data={"hrv" : hrv, "rr" : len(rr_peaks) * 2}, status=status.HTTP_200_OK, safe=False)
     
 def generateSecant(ecg : np.ndarray, position: int = 1) -> [(float, float)]:
     data_length = len(ecg)
