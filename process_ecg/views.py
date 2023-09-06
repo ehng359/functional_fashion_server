@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 import numpy as np, neurokit2 as nk, json, ast, subprocess, os
-from scipy.signal import find_peaks
+from scipy.signal import find_peaks, butter, sosfiltfilt
 
 SCI_PY_METHOD = 0
 DB_DIFF_METHOD = 1
@@ -49,17 +49,18 @@ def process_ecg_data (request):
 
             # subprocess.Popen(['python3', 'emailUserData.py', '-n', "test_ecg_time.json", '-e', "3dward.ng@gmail.com"], stdout=subprocess.PIPE)
             # subprocess.Popen(['python3', 'emailUserData.py', '-n', "test_ecg_voltage.json", '-e', "3dward.ng@gmail.com"], stdout=subprocess.PIPE)
+        filtered_voltages = band_pass_filter(data=voltages, lower_freq=10, upper_freq=100, sampling_rate=1000, poles=5)
 
         est_t = np.linspace(0, 30, 30000)
-        est_v = np.array(np.interp(est_t, times, voltages))
+        est_v = np.array(np.interp(est_t, times, filtered_voltages))
         tv_input = np.hstack((np.vstack(est_t), np.vstack(est_v)))
-        peak_time, peak_volt = find_r_peaks(tv_input)
+        peak_time, _ = find_r_peaks(tv_input)
         
-        hrv = computeHRV(peak_time)
+        hrv = compute_HRV(peak_time)
         est_rr = nk.ecg_rsp(est_v, sampling_rate=1000)
         rr_peaks, _ = find_peaks(est_rr)
         
-        return JsonResponse(data={"hrv" : hrv, "rr" : len(rr_peaks) * 2}, status=status.HTTP_200_OK, safe=False)
+        return JsonResponse(data={ "hrv" : hrv, "rr" : len(rr_peaks) * 2 }, status=status.HTTP_200_OK, safe=False)
     
 def generateSecant(ecg : np.ndarray, position: int = 1) -> [(float, float)]:
     data_length = len(ecg)
@@ -145,7 +146,7 @@ def find_r_peaks (env : np.ndarray, method : int = SCI_PY_METHOD) -> None:
         return selected
     return
 
-def computeHRV(r_peak_times) :
+def compute_HRV(r_peak_times) :
     rr_intervals = []
     prev = r_peak_times[0]
     for i in range(1, len(r_peak_times)):
@@ -160,3 +161,13 @@ def computeHRV(r_peak_times) :
         sum_of_squared_diff += rr_diff ** 2
     RMSSD = np.sqrt(sum_of_squared_diff / (len(rr_intervals) - 1))
     return RMSSD
+
+def low_pass_filter(data : np.ndarray, cutoff : float, sample_rate : float, poles : int):
+    sos = butter(poles, cutoff, 'lowpass', fs=sample_rate, output="sos")
+    filtered_data = sosfiltfilt(sos, data)
+    return filtered_data
+
+def band_pass_filter(data : np.ndarray, lower_freq : float, upper_freq: float, sample_rate : float, poles : int):
+    sos = butter(poles, [lower_freq, upper_freq], 'bandpass', fs=sample_rate, output="sos")
+    filtered_data = sosfiltfilt(sos, data)
+    return filtered_data
