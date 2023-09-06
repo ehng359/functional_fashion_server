@@ -1,9 +1,11 @@
 FROM python:3.10-alpine
 
-RUN apk add --update make cmake gcc g++ gfortran
-RUN apk --no-cache add musl-dev linux-headers
+RUN apk add --update make cmake gcc g++ gfortran build-base wget libpng-dev openblas-dev
+RUN apk --no-cache add musl-dev linux-headers py3-scipy
 
-RUN pip3 install django django-rest-framework django-debug-toolbar cpython numpy scipy neurokit2
+RUN pip3 install --upgrade pip
+RUN pip3 install django django-rest-framework django-debug-toolbar cpython numpy
+RUN pip3 install neurokit2
 
 # Copy the current directory contents into the container at /app 
 ADD . /app
