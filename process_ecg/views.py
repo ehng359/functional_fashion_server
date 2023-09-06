@@ -49,7 +49,7 @@ def process_ecg_data (request):
 
             # subprocess.Popen(['python3', 'emailUserData.py', '-n', "test_ecg_time.json", '-e', "3dward.ng@gmail.com"], stdout=subprocess.PIPE)
             # subprocess.Popen(['python3', 'emailUserData.py', '-n', "test_ecg_voltage.json", '-e', "3dward.ng@gmail.com"], stdout=subprocess.PIPE)
-        filtered_voltages = band_pass_filter(data=voltages, lower_freq=10, upper_freq=100, sampling_rate=1000, poles=5)
+        filtered_voltages = band_pass_filter(data=voltages, lower_freq=10, upper_freq=100, sample_rate=1000, poles=5)
 
         est_t = np.linspace(0, 30, 30000)
         est_v = np.array(np.interp(est_t, times, filtered_voltages))
@@ -57,9 +57,9 @@ def process_ecg_data (request):
         peak_time, _ = find_r_peaks(tv_input)
         
         hrv = compute_HRV(peak_time)
-        est_rr = nk.ecg_rsp(est_v, sampling_rate=1000)
+        est_rr = nk.ecg_rsp(np.interp(est_t, times, voltages), sampling_rate=1000)
         rr_peaks, _ = find_peaks(est_rr)
-        
+        print({ "hrv" : hrv, "rr" : len(rr_peaks) * 2 })
         return JsonResponse(data={ "hrv" : hrv, "rr" : len(rr_peaks) * 2 }, status=status.HTTP_200_OK, safe=False)
     
 def generateSecant(ecg : np.ndarray, position: int = 1) -> [(float, float)]:
@@ -97,7 +97,7 @@ def find_r_peaks (env : np.ndarray, method : int = SCI_PY_METHOD) -> None:
             scipy.find_peaks method which specializes in searching for jumps in data (enabling R-Peaks to be)
             easily identifiable.
         '''
-        indices, _ = find_peaks(env[:,1], distance=150, prominence=1)
+        indices, _ = find_peaks(env[:,1], distance=150, prominence=0.6)
         time_vals = sorted([env[:,0][index] for index in indices])
         volt_vals = np.interp(time_vals, env[:,0], env[:,1])
         return time_vals, volt_vals
