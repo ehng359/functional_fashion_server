@@ -76,7 +76,31 @@ Available parameters for the HTTP request while retrieving live data from the Ap
 - past : (numeric_value)_(metric) which indicates the range from which you want to retrieve data from current time. (i.e. 5_days, 4_hours, 3_minutes, 2_seconds). Note: This feature does not work interchangeably with since_day or since_time.
 - num_instances : (numeric_value) which indicates the number of instances that you want to query for at a given time.
 
+#### Example GET requests
+```
+-- Retrieving the data since a certain day --
+https://[url].com/?id=XXXXXX-XXXXXX-XXXXXXX-XXXXXX&2023-01-01
+-- Retrieving the data since a certain day-time --
+https://[url].com/?id=XXXXX-XXXXX-XXXXX-XXXXX&since_day=2021-10-21&since_time=14:27:12
+-- Retrieving the data since --
+https://[url].com/?id=XXXXX-XXXXX-XXXXX-XXXXX&past=10_minutes
+-- Retrieving x amount of samples --
+https://[url].com/?id=XXXXX-XXXXX-XXXXX-XXXXX&num_instances=5
+-- Retrieving x amount of samples since certain day-time --
+https://[url].com/?id=XXXXX-XXXXX-XXXXX-XXXXX&since_day=2021-10-21&since_time=14:27:12&num_instances=5
+```
 Providing none of these values will simply return all the values accordingly.
+Note: providing past and since_* parameters will conflict; do not place it in the same query call.
+
+If you are gathering data via Python, look at the `requests` module to simplify this process easier by simply calling:
+```python
+import requests
+url = https://www.some_end_point.com/
+params = {"id" : "someID"}                          # some dictionary type adhearing to the aforementioned parameters
+response = requests.get(url=url, PARAMS=params)     # making request directly to the particular endpoint with aforementioned parameters
+
+# --- Handle response here --- "
+```
 
 ### POST
 Adds biometric data in the format of:
@@ -93,7 +117,8 @@ Adds biometric data in the format of:
     "activity": "Work/Study"
 }, ...]
 ```
+These values will then store into the User & Biometric models which contain the information related to all the information held in the provided JSON-format.
 
 ### PUT
-Takes all values from a given session and consolidates the values to a .json file compiled together underneath the data folder constructed with the makeData.sh shell script.
+Takes all values from a given session and consolidates the values to a .json file compiled together underneath the data folder constructed with the makeData.sh shell script. If an email is provided to the watch application, it will additionally be indicated to the server and call upon the emailUserData.py script and send a summary of the session to the user's email.
 
