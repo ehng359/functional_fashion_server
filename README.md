@@ -67,6 +67,17 @@ Once these permissions are granted, we can restart the service with `sudo servic
 
 These processes enable us to setup the DJango project in its own virtual environment and configure Apache with mod_wsgi to handle client requests to directly interface with Django. If not launching on a public server accessible via some domain, ensure that all devices in which want to make the request belnog to the same network as the server.
 
+### Required Python Modules
+```
+-- requirements.txt
+django 
+django-rest-framework 
+django-debug-toolbar 
+cpython 
+numpy 
+neurokit2
+```
+
 ## HTTP Requests and Usage
 ### GET
 Available parameters for the HTTP request while retrieving live data from the Apple Watch:
@@ -104,7 +115,7 @@ response = requests.get(url=url, PARAMS=params)     # making request directly to
 
 ### POST
 Adds biometric data in the format of:
-```
+```json
 [{
     "watchUser": "B6B2A8D5-CA77-4D2D-AFE3-F1074690BA3F", 
     "date": "2023-08-16 13:27:17 +0000", 
@@ -122,3 +133,37 @@ These values will then store into the User & Biometric models which contain the 
 ### PUT
 Takes all values from a given session and consolidates the values to a .json file compiled together underneath the data folder constructed with the makeData.sh shell script. If an email is provided to the watch application, it will additionally be indicated to the server and call upon the emailUserData.py script and send a summary of the session to the user's email.
 
+## Django Apps and Models
+Within the `collect` app, there exist are two primary models handling the data from the Apple Watch (users and biometrics) where the User model and Biometrics model is defined by:
+```python
+class Users(models.Model):
+    id = models.CharField(primary_key=True, max_length=40, default="")
+    biometricData = models.ManyToManyField('Biometrics', blank=True, null=True)
+
+    def __str__(self):
+        return self.id
+```
+```python
+class Biometrics(models.Model):
+    watchUser = models.ForeignKey(Users,blank=True, null=True, on_delete=models.DO_NOTHING)
+    date = models.CharField(max_length=30, default="")
+
+    # Biometric label values
+    heartBeat = models.IntegerField(default=None, null=True)
+    respiratoryRate = models.IntegerField(default=None, null=True)
+    heartBeatVar = models.IntegerField(default=None, null=True)
+    restingHeartRate = models.IntegerField(default=None, null=True)
+
+    # Emotion-Spectrum Grid Values
+    valence = models.FloatField(default=None, null=True)
+    arousal = models.FloatField(default=None, null=True)
+
+    # Context
+    activity = models.CharField(max_length=20, default="None")
+
+    def __str__(self):
+        return self.watchUser.id + " " + self.date
+```
+This provides the information necessary relative for Django to understand what type of data is needed to be stored in the SQLite.db file and in what structure. The views.py file indicates how each request mentioned above is handled relative to the models provided.
+
+The `process_ecg` application allows users to send their ECG data to a different access point within the server that is dedicated to processing raw ECG data and providing metrics regarding data (i.e. heart-rate, heart-rate variability, and ECG-derived respiration); this application has no connected models and only returns processed information back towards the source of the request. This is powered primarily through the `Neurokit2` module as well as `scipy`.
